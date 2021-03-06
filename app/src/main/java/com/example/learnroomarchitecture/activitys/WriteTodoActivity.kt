@@ -51,9 +51,11 @@ class WriteTodoActivity: AppCompatActivity(), View.OnClickListener {
             }
             binding.writeTodoBtn->{
                 if(insertOrUpdate){
+                    Log.d(TAG, "WriteTodoActivity - onClick() : insert todo list")
                     insertTodoListDb()
                 }else{
-
+                    Log.d(TAG, "WriteTodoActivity - onClick() : update todo list")
+                    updateTodoListDb()
                 }
             }
         }
@@ -84,6 +86,22 @@ class WriteTodoActivity: AppCompatActivity(), View.OnClickListener {
     }
 
     private fun updateTodoListDb(){
+        Thread(Runnable {
+            try{
+                val todo = binding.writeTodoEditText.text.toString()
+                val date = Date().toSimpleDateFomat()
+                val todoListTable = TodoListTable(todoItemId, todo, date)
+
+                todoListDb?.todoListDao()?.updateTodoListItem(todoListTable)
+                val intent = Intent().apply {
+                    putExtra("result", "addData")
+                }
+                setResult(RESULT_OK, intent)
+                finish()
+            }catch (e: Exception){
+                Log.d(TAG, "WriteTodoActivity - updateTodoListDb() : error : $e")
+            }
+        }).start()
 
     }
 }

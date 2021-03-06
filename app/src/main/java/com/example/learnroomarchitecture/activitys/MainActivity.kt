@@ -1,15 +1,16 @@
 package com.example.learnroomarchitecture.activitys
 
-import android.app.Activity
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
 import android.view.View
+import androidx.lifecycle.Observer
+import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.example.learnroomarchitecture.MainViewModel
 import com.example.learnroomarchitecture.RecyclerView.InTodoListRecyclerview
 import com.example.learnroomarchitecture.RecyclerView.TodolistRecyclerViewAdpter
-import com.example.learnroomarchitecture.RecyclerView.TodolistRecyclerViewHolder
 import com.example.learnroomarchitecture.dataBaseRoom.TodoListDatabase
 import com.example.learnroomarchitecture.dataBaseRoom.TodoListTable
 import com.example.learnroomarchitecture.databinding.ActivityMainBinding
@@ -22,6 +23,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, InTodoListRecycl
     private var todoListDb: TodoListDatabase? =null
 
     private lateinit var binding: ActivityMainBinding
+    private lateinit var todoListViewMode: MainViewModel
 
     private var todoListArray = ArrayList<TodoListTable>()
 
@@ -33,6 +35,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, InTodoListRecycl
         super.onCreate(savedInstanceState)
 
         binding = ActivityMainBinding.inflate(layoutInflater)
+        todoListViewMode = ViewModelProvider(this).get(MainViewModel::class.java)
 
         setContentView(binding.root)
 
@@ -50,7 +53,13 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, InTodoListRecycl
             this.scrollToPosition(todoListRecyclerAdpter.itemCount - 1)
             adapter = todoListRecyclerAdpter
         }
+
         getTodoListAll()
+
+        todoListViewMode.currentValue.observe(this, Observer {
+            todoListRecyclerAdpter.submitList(it)
+            todoListRecyclerAdpter.notifyDataSetChanged()
+        })
     }
 
     override fun onClick(v: View?) {
@@ -70,11 +79,13 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, InTodoListRecycl
         Thread(Runnable {
             kotlin.run {
                 todoListArray = todoListDb?.todoListDao()?.getAll()!! as ArrayList<TodoListTable>
+                todoListViewMode.updateValue(todoListArray)
                 Log.d(TAG, "MainActivity - getTodoListAll : ${todoListArray.size}")
+
             }
             runOnUiThread{
-                this.todoListRecyclerAdpter.submitList(todoListArray)
-                this.todoListRecyclerAdpter.notifyDataSetChanged()
+//                this.todoListRecyclerAdpter.submitList(todoListArray)
+//                this.todoListRecyclerAdpter.notifyDataSetChanged()
             }
         }).start()
         }catch (e: Exception){
@@ -84,6 +95,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, InTodoListRecycl
 
     override fun onClickedTodoItem(position: Int) {
         val intent = Intent(this, WriteTodoActivity::class.java).apply {
+            putExtra("todoItmeId", todoListArray[position].toDoId)
             putExtra("todoItem", todoListArray[position].toDo)
             putExtra("insertData", false)
         }
