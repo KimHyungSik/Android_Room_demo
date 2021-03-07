@@ -9,7 +9,8 @@ class TodolistRecyclerViewHolder(itemView: View, todoListRecyclerviewInterface: 
 
     private val todoTitle = itemView.todo_title
     private val todoDate = itemView.todo_date
-    private val todoListView = itemView.todo_list_view
+    private val todoListView = itemView.swipe_view
+    private val todoDeleteBtn = itemView.siwpe_delete_btn
     private var iTodo : InTodoListRecyclerview? = null
 
     init {
@@ -26,6 +27,9 @@ class TodolistRecyclerViewHolder(itemView: View, todoListRecyclerviewInterface: 
         when(v){
             todoListView->{
                 this.iTodo?.onClickedTodoItem(adapterPosition)
+            }
+            todoDeleteBtn->{
+                this.iTodo?.onClickedTodoDeleteBtn(adapterPosition)
             }
         }
     }

@@ -1,5 +1,6 @@
 package com.example.learnroomarchitecture.activitys
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
@@ -7,9 +8,11 @@ import android.util.Log
 import android.view.View
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
+import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.learnroomarchitecture.MainViewModel
 import com.example.learnroomarchitecture.RecyclerView.InTodoListRecyclerview
+import com.example.learnroomarchitecture.RecyclerView.SwipeHelperCallBack
 import com.example.learnroomarchitecture.RecyclerView.TodolistRecyclerViewAdpter
 import com.example.learnroomarchitecture.dataBaseRoom.TodoListDatabase
 import com.example.learnroomarchitecture.dataBaseRoom.TodoListTable
@@ -31,6 +34,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, InTodoListRecycl
 
     private val RESULT_WRITE_TODO = 1
 
+    @SuppressLint("ClickableViewAccessibility")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -42,20 +46,36 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, InTodoListRecycl
         todoListDb = TodoListDatabase.getInstance(this)
         binding.addListItem.setOnClickListener(this)
 
+        // 리사이클러뷰 어뎁터 설정
         this.todoListRecyclerAdpter = TodolistRecyclerViewAdpter(this)
         this.todoListRecyclerAdpter.submitList(todoListArray)
 
+        // 리사이클러뷰 레이아웃 설정
         val myLinearLayoutManager = LinearLayoutManager(this, LinearLayoutManager.VERTICAL, true)
         myLinearLayoutManager.stackFromEnd = true
 
+        // 리사이클러 뷰 스와이프 설정
+        val swipeHelperCallBack = SwipeHelperCallBack().apply {
+            setClamp(152f)
+        }
+        val itemTouchHelper = ItemTouchHelper(swipeHelperCallBack)
+        itemTouchHelper.attachToRecyclerView(binding.todoListRecycler)
+
+        // 리사이클러뷰 설정
         binding.todoListRecycler.apply {
             layoutManager = myLinearLayoutManager
             this.scrollToPosition(todoListRecyclerAdpter.itemCount - 1)
             adapter = todoListRecyclerAdpter
+            setOnTouchListener { _, _ ->
+                swipeHelperCallBack.removePreviousClamp(this)
+                false
+            }
         }
 
         getTodoListAll()
 
+        // 라이브 데이타 옵저버 설정
+        // 옵저빙 중인 데이터가 변경 시 함수 호출
         todoListViewMode.currentValue.observe(this, Observer {
             todoListRecyclerAdpter.submitList(it)
             todoListRecyclerAdpter.notifyDataSetChanged()
@@ -100,6 +120,24 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, InTodoListRecycl
             putExtra("insertData", false)
         }
         startActivityForResult(intent, RESULT_WRITE_TODO)
+    }
+
+    override fun onClickedTodoDeleteBtn(position: Int) {
+        Log.d(TAG, "MainActivity - onClickedTodoDeleteBtn() ")
+        try{
+            Thread(Runnable {
+                kotlin.run {
+                    val todo = todoListArray[position].toDo
+                    val date = todoListArray[position].toDoDate
+                    val toId = todoListArray[position].toDoId
+                    val todoListTable = TodoListTable(toId,todo,date)
+                    todoListDb?.todoListDao()?.deleteTodoListItem(todoListTable)
+                    getTodoListAll()
+                }
+            }).start()
+        }catch (e: Exception){
+            Log.d(TAG, "MainActivity - onClickedTodoDeleteBtn(): error : $e")
+        }
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
